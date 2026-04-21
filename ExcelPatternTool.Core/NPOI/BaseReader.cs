@@ -215,7 +215,7 @@ namespace ExcelPatternTool.Core.NPOI
             bool value = false;
             switch (cell.CellType)
             {
-                case CellType.Unknown:
+                case CellType._None:
                 case CellType.Blank:
                 case CellType.Error:
                 case CellType.Formula:
@@ -243,7 +243,7 @@ namespace ExcelPatternTool.Core.NPOI
                     value = cell.CachedFormulaResultType == CellType.Numeric ? cell.NumericCellValue : 0;
                     break;
                 case CellType.Blank:
-                case CellType.Unknown:
+                case CellType._None:
                     value = 0;
                     break;
                 case CellType.Boolean:
@@ -272,7 +272,7 @@ namespace ExcelPatternTool.Core.NPOI
                              || cell.CachedFormulaResultType == CellType.String ? cell.DateCellValue : default;
                     break;
                 case CellType.Blank:
-                case CellType.Unknown:
+                case CellType._None:
                 case CellType.Boolean:
                 case CellType.Error:
                     value = default;
@@ -302,7 +302,7 @@ namespace ExcelPatternTool.Core.NPOI
                     break;
 
                 case CellType.Blank:
-                case CellType.Unknown:
+                case CellType._None:
                     value = string.Empty;
                     break;
                 case CellType.Boolean:
