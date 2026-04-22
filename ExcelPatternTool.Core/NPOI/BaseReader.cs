@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using NPOI.SS.Formula.Functions;
@@ -14,6 +15,7 @@ namespace ExcelPatternTool.Core.NPOI
 {
     public class BaseReader : BaseHandler
     {
+        private readonly DataFormatter _dataFormatter = new DataFormatter(CultureInfo.InvariantCulture);
 
         internal T GetDataToObject<T>(IRow row, List<ColumnMetadata> columns) where T : IExcelEntity
         {
@@ -212,114 +214,125 @@ namespace ExcelPatternTool.Core.NPOI
 
         private bool ExtractBooleanFromCell(ICell cell)
         {
-            bool value = false;
-            switch (cell.CellType)
+            if (cell == null)
             {
-                case CellType._None:
-                case CellType.Blank:
-                case CellType.Error:
-                case CellType.Formula:
-                    value = false;
-                    break;
-                case CellType.Boolean:
-                    value = cell.BooleanCellValue;
-                    break;
-                case CellType.Numeric:
-                    value = cell.NumericCellValue > 0 ? true : false;
-                    break;
-                case CellType.String:
-                    bool.TryParse(cell.StringCellValue, out value);
-                    break;
+                return false;
             }
-            return value;
+
+            if (cell.CellType == CellType.Boolean)
+            {
+                return cell.BooleanCellValue;
+            }
+
+            if (cell.CellType == CellType.Error || cell.CellType == CellType.Blank || cell.CellType == CellType._None)
+            {
+                return false;
+            }
+
+            string formattedValue = GetFormattedCellValue(cell);
+            if (string.IsNullOrWhiteSpace(formattedValue))
+            {
+                return false;
+            }
+
+            if (bool.TryParse(formattedValue, out bool boolValue))
+            {
+                return boolValue;
+            }
+
+            if (double.TryParse(formattedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out double numericValue)
+                || double.TryParse(formattedValue, NumberStyles.Any, CultureInfo.CurrentCulture, out numericValue))
+            {
+                return numericValue > 0;
+            }
+
+            return false;
         }
 
         private double ExtractNumericFromCell(ICell cell)
         {
-            double value = 0;
-            switch (cell.CellType)
+            if (cell == null)
             {
-                case CellType.Formula:
-                    value = cell.CachedFormulaResultType == CellType.Numeric ? cell.NumericCellValue : 0;
-                    break;
-                case CellType.Blank:
-                case CellType._None:
-                    value = 0;
-                    break;
-                case CellType.Boolean:
-                    value = cell.BooleanCellValue ? 1 : 0;
-                    break;
-                case CellType.Error:
-                    value = cell.ErrorCellValue;
-                    break;
-                case CellType.Numeric:
-                    value = cell.NumericCellValue;
-                    break;
-                case CellType.String:
-                    double.TryParse(cell.StringCellValue, out value);
-                    break;
+                return 0;
             }
-            return value;
+
+            if (cell.CellType == CellType.Boolean)
+            {
+                return cell.BooleanCellValue ? 1 : 0;
+            }
+
+            if (cell.CellType == CellType.Error)
+            {
+                return cell.ErrorCellValue;
+            }
+
+            string formattedValue = GetFormattedCellValue(cell);
+            if (string.IsNullOrWhiteSpace(formattedValue))
+            {
+                return 0;
+            }
+
+            if (double.TryParse(formattedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)
+                || double.TryParse(formattedValue, NumberStyles.Any, CultureInfo.CurrentCulture, out value))
+            {
+                return value;
+            }
+
+            return 0;
         }
 
         private DateTime ExtractDateFromCell(ICell cell)
         {
-            DateTime? value = DateTime.Now;
-            switch (cell.CellType)
+            if (cell == null)
             {
-                case CellType.Formula:
-                    value = cell.CachedFormulaResultType == CellType.Numeric
-                             || cell.CachedFormulaResultType == CellType.String ? cell.DateCellValue : default;
-                    break;
-                case CellType.Blank:
-                case CellType._None:
-                case CellType.Boolean:
-                case CellType.Error:
-                    value = default;
-                    break;
-                case CellType.Numeric:
-                    value = cell.DateCellValue;
-                    break;
-                case CellType.String:
-                    value = cell.DateCellValue;
-                    break;
+                return default;
             }
-            return value??default;
+
+            if ((cell.CellType == CellType.Numeric || cell.CellType == CellType.Formula) && DateUtil.IsCellDateFormatted(cell))
+            {
+                return cell.DateCellValue ?? default;
+            }
+
+            string formattedValue = GetFormattedCellValue(cell);
+            if (string.IsNullOrWhiteSpace(formattedValue))
+            {
+                return default;
+            }
+
+            if (DateTime.TryParse(formattedValue, CultureInfo.CurrentCulture, DateTimeStyles.None, out DateTime currentCultureDate)
+                || DateTime.TryParse(formattedValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out currentCultureDate))
+            {
+                return currentCultureDate;
+            }
+
+            return default;
         }
 
         private string ExtractStringFromCell(ICell cell)
         {
-            string value = string.Empty;
             if (cell == null)
             {
                 return string.Empty;
             }
-            switch (cell.CellType)
+
+            if (cell.CellType == CellType.Error)
             {
-                case CellType.Formula:
-                    value = cell.CachedFormulaResultType == CellType.String
-                              ? cell.StringCellValue : string.Empty;
-                    break;
-
-                case CellType.Blank:
-                case CellType._None:
-                    value = string.Empty;
-                    break;
-                case CellType.Boolean:
-                    value = cell.BooleanCellValue.ToString();
-                    break;
-                case CellType.Error:
-                    value = "Error Code:" + cell.ErrorCellValue.ToString();
-                    break;
-
-                case CellType.Numeric:
-                    value = cell.NumericCellValue.ToString();
-                    break;
-                case CellType.String:
-                    value = cell.StringCellValue;
-                    break;
+                return "Error Code:" + cell.ErrorCellValue.ToString();
             }
-            return value;
+
+            return GetFormattedCellValue(cell);
+        }
+
+        private string GetFormattedCellValue(ICell cell)
+        {
+            try
+            {
+                return _dataFormatter.FormatCellValue(cell) ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"读取单元格格式化文本失败。Row={cell.RowIndex}, Col={cell.ColumnIndex}, CellType={cell.CellType}", ex);
+            }
         }
 
         private IAdvancedType ExtractDateFromFomular<T>(ICell cell, Type iType) where T : struct
