@@ -18,6 +18,49 @@ namespace ExcelPatternTool
     public class DocProcessor
     {
 
+        public static byte[] ExportTo<T>(IList<T> src,  ExportOption exportOption) where T : IExcelEntity
+        {
+            if (exportOption == null)
+            {
+                exportOption = new ExportOption(typeof(T), 0);
+            }
+            Exporter exporter = new Exporter();
+            var output = new byte[0];
+            try
+            {
+                output = exporter.ProcessGetBytes(src, exportOption);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("格式错误");
+            }
+
+            return output;
+        }
+
+        public static byte[] ExportTo(Type entityType, IList src, ExportOption exportOption)
+        {
+            if (exportOption == null)
+            {
+                exportOption = new ExportOption(entityType, 0);
+            }
+            Exporter exporter = new Exporter();
+            var output = new byte[0];
+
+            try
+            {
+                output = exporter.ProcessGetBytes(entityType, src, exportOption);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("格式错误");
+            }
+
+            return output;
+        }
+
         public static void SaveTo<T>(string filePath, IList<T> src, ExportOption exportOption) where T : IExcelEntity
         {
             var extension = Path.GetExtension(filePath).ToLower();
@@ -234,6 +277,84 @@ namespace ExcelPatternTool
             }
 
             return default;
+        }
+
+        public static List<T> ImportFrom<T>(byte[] data1, string fileType, IImportOption importOption) where T : IExcelEntity
+        {
+            if (importOption == null)
+            {
+                importOption = new ImportOption<T>(0, 0);
+            }
+            Importer import = new Importer();
+            List<T> output = new List<T>();
+
+
+            try
+            {
+                if (fileType.Equals("xlsx"))
+                {
+                    import.LoadXlsx(data1);
+                }
+                else if (fileType.Equals("xls"))
+                {
+                    import.LoadXls(data1);
+                }
+                else
+                {
+                    Console.WriteLine(fileType + " 文件类型错误");
+                    return output;
+                }
+
+                output = import.Process<T>(importOption).ToList();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("格式错误");
+            }
+
+            return output;
+
+
+        }
+
+
+        public static List<IExcelEntity> ImportFrom(byte[] data1, string fileType, IImportOption importOption)
+        {
+            if (importOption == null)
+            {
+                importOption = new ImportOption(EntityProxyContainer.Current.EntityType, 0, 0);
+            }
+            Importer import = new Importer();
+            List<IExcelEntity> output = new List<IExcelEntity>();
+
+            try
+            {
+                if (fileType.Equals("xlsx"))
+                {
+                    import.LoadXlsx(data1);
+                }
+                else if (fileType.Equals("xls"))
+                {
+                    import.LoadXls(data1);
+                }
+                else
+                {
+                    Console.WriteLine(fileType + " 文件类型错误");
+                    return output;
+                }
+
+                output = import.Process(EntityProxyContainer.Current.EntityType, importOption).ToList();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("格式错误");
+            }
+
+            return output;
+
+
         }
 
 

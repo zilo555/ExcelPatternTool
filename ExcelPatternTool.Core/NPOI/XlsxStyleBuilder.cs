@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using SixLabors.ImageSharp;
+using ExcelPatternTool.Contracts.NPOI;
+using ExcelPatternTool.Core.Helper;
+using NPOI.HSSF.Util;
+using NPOI.OOXML.XSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.Model;
 using NPOI.XSSF.UserModel;
 using NPOI.XSSF.UserModel.Extensions;
-using ExcelPatternTool.Core.Helper;
-using ExcelPatternTool.Contracts.NPOI;
-using NPOI.HSSF.Util;
-using NPOI.OOXML.XSSF.UserModel;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace ExcelPatternTool.Core.NPOI
 {
@@ -127,7 +128,10 @@ namespace ExcelPatternTool.Core.NPOI
             {
                 return new XSSFColor(IndexedColors.Automatic, new DefaultIndexedColorMap());
             }
-            var result = new XSSFColor(Color.Parse(htmlColor));
+            var color = Color.Parse(htmlColor);
+            var rgba = color.ToPixel<Rgba32>();
+            byte[] rgb = new byte[] { rgba.R, rgba.G, rgba.B };
+            var result = new XSSFColor(rgb, new DefaultIndexedColorMap());
             return result;
         }
 
@@ -138,7 +142,7 @@ namespace ExcelPatternTool.Core.NPOI
         }
         public IComment GetComment(IRichTextString richTextString)
         {
-            IDrawing patr = Workbook.GetSheetAt(0).CreateDrawingPatriarch();
+            var patr = Workbook.GetSheetAt(0).CreateDrawingPatriarch();
             IComment comment12 = patr.CreateCellComment(new XSSFClientAnchor(0, 0, 0, 0, 0, 0, 0, 0));//批注显示定位        }
             comment12.String = richTextString;
             comment12.Author = ConfigurationHelper.GetConfigValue("CellComment:DefaultAuthor", "Linxiao");
