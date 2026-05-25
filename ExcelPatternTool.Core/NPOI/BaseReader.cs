@@ -34,7 +34,6 @@ namespace ExcelPatternTool.Core.NPOI
                 ICell cell = row.GetCell(columns[j].ColumnOrder);
                 if (cell == null)
                 {
-                    Console.WriteLine($"第 {row.RowNum} 行， 第 {columns[j].ColumnOrder} 列  不符合MetaData定义规范，跳过");
                     continue;
                 }
                 string colTypeDesc = columns[j].PropType.Name.ToLowerInvariant();
